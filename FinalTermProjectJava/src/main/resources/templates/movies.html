@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>All Movies</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f9fafb;
+            margin: 30px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #34495e;
+            color: #ecf0f1;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .poster-img {
+            max-width: 80px;
+            border-radius: 4px;
+        }
+        .no-movies-row {
+            font-weight: bold;
+            text-align: center;
+            color: #c0392b;
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination button {
+            background-color: #34495e;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            background-color: #7f8c8d;
+            cursor: default;
+        }
+        .pagination span {
+            font-weight: 600;
+            margin: 0 10px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+<h1>All Movies</h1>
+<label for="pageSizeSelect">Movies per page:</label>
+<select id="pageSizeSelect">
+    <option th:selected="${size == 2}" value="2">2</option>
+    <option th:selected="${size == 5}" value="5">5</option>
+    <option th:selected="${size == 10}" value="10">10</option>
+    <option th:selected="${size == 20}" value="20">20</option>
+</select>
+<input type="text" id="searchInput" placeholder="Search movies by title..." />
+
+<table>
+    <thead>
+        <tr>
+            <th>Poster</th>
+            <th>Title</th>
+            <th>Original Title</th>
+            <th>Overview</th>
+            <th>Release Date</th>
+            <th>Rating</th>
+            <th>Adult</th>
+            <th>Language</th>
+            <th>Popularity</th>
+            <th>Vote Count</th>
+        </tr>
+    </thead>
+    <tbody id="moviesTbody" th:fragment="moviesBody">
+        <tr th:each="movie : ${movies}" class="movie-row">
+            <td>
+                <img class="poster-img" 
+                     th:src="@{'https://image.tmdb.org/t/p/w200' + ${movie.posterPath}}" 
+                     alt="Poster" />
+            </td>
+            <td class="title-cell" th:text="${movie.title}">Title</td>
+            <td th:text="${movie.originalTitle}">Original Title</td>
+            <td th:text="${movie.overview}">Overview</td>
+            <td th:text="${movie.releaseDate}">Release Date</td>
+            <td th:text="${movie.rating}">Rating</td>
+            <td th:text="${movie.adult ? 'Yes' : 'No'}">Adult</td>
+            <td th:text="${movie.originalLanguage}">Language</td>
+            <td th:text="${movie.popularity}">Popularity</td>
+            <td th:text="${movie.voteCount}">Vote Count</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="pagination"> 
+    <button th:if="${currentPage > 0}"
+            th:onclick="'window.location=\'/fetchALL?page=' + (${currentPage} - 1) + '&size=' + ${size} + '\''">
+        Previous
+    </button>
+
+    <span>Page <b th:text="${currentPage + 1}">1</b> of <b th:text="${totalPages}">1</b></span>
+
+    <button th:if="${currentPage + 1 < totalPages}"
+            th:onclick="'window.location=\'/fetchALL?page=' + (${currentPage} + 1) + '&size=' + ${size} + '\''">
+        Next
+    </button>
+</div>
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const tbody = document.getElementById('moviesTbody');
+
+    searchInput.addEventListener('input', () => {
+        const filter = searchInput.value.trim().toLowerCase();
+        const rows = tbody.querySelectorAll('tr.movie-row');
+
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const titleCell = row.querySelector('.title-cell');
+            if (!titleCell) return;
+
+            const titleText = titleCell.textContent.toLowerCase();
+            if (titleText.includes(filter) || filter === "") {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Remove existing "no movies found" row if any
+        const noMoviesRow = tbody.querySelector('.no-movies-row');
+        if (noMoviesRow) noMoviesRow.remove();
+
+        // If no visible rows, add a message row
+        if (visibleCount === 0) {
+            const noRow = document.createElement('tr');
+            noRow.classList.add('no-movies-row');
+            noRow.innerHTML = `<td colspan="10">Movies not found</td>`;
+            tbody.appendChild(noRow);
+        }
+    });
+</script>
+
+<script>
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+
+    pageSizeSelect.addEventListener('change', () => {
+        const selectedSize = pageSizeSelect.value;
+        // Reset to first page (page=0) when page size changes
+        window.location = `/fetchALL?page=0&size=${selectedSize}`;
+    });
+</script>
+
+</body>
+</html>
