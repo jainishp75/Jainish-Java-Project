@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -25,7 +27,7 @@ public class MovieCntroller {
 	ArrayList<MovieEntity> trendingMovies = new ArrayList<MovieEntity>();
 	
 
-	//API for fetch data from 3rd party URRL and stores in db
+	//API for fetch data from 3rd party URL and stores in db
 	@ResponseBody
 	  @GetMapping("/trending")
 	    public Response getTrendingMovies() throws Exception {
@@ -41,13 +43,14 @@ public class MovieCntroller {
 		  return Response.getResponse(200, "Data inserted Succesfully..", trendingMovies);
 	    }
 	
+	
 	@GetMapping("/fetchALL")
 	public String fetchAllMoviesFromDb(
 	        Model model,
 	        @RequestParam(defaultValue = "0") int page,
 	        @RequestParam(required = false) Integer size) {
 
-	    if (size == null) size = 2;  // default value if null
+	    if (size == null) size = 5;  // default value if null
 
 	    Pageable pageable = PageRequest.of(page, size);
 	    Page<MovieEntity> moviePage = movieService.getMoviesPage(pageable);
@@ -56,8 +59,16 @@ public class MovieCntroller {
 	    model.addAttribute("currentPage", page);
 	    model.addAttribute("totalPages", moviePage.getTotalPages());
 	    model.addAttribute("size", size);
+	    
+	    System.out.println("Movies fetched: " + moviePage.getContent().size());
 
 	    return "movies";
+	}
+	
+	@PutMapping("/deleteMovie/{id}")
+	public String deleteMovie(@PathVariable Long id) {
+	    movieService.deleteMovieThroughId(id); 
+	    return "redirect:/fetchALL"; 
 	}
 
 
