@@ -3,6 +3,8 @@ package com.example.FinalTermProjectJava.Entity;
 import java.time.LocalDate;
 import java.util.List;
 
+
+
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -42,6 +44,7 @@ public class MovieEntity {
     private String overview;
 
     private String posterPath;
+    
     private String backdropPath;
 
     private LocalDate releaseDate;
@@ -55,6 +58,8 @@ public class MovieEntity {
     private Double popularity;
 
     private Integer voteCount;
+    
+    private Boolean isDelete = false ;
 
     @ElementCollection
     @CollectionTable(name = "movie_genres", joinColumns = @JoinColumn(name = "movie_id"))

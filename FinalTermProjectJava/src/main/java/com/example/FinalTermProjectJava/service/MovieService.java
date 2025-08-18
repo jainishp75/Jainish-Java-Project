@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.FinalTermProjectJava.Entity.MovieEntity;
@@ -53,6 +55,8 @@ public class MovieService {
 		  
 	        String url = "https://api.themoviedb.org/3/trending/movie/week?api_key=" + apiKey;
 	        String jsonResponse = restTemplate.getForObject(url, String.class);
+	        
+	        System.out.println(jsonResponse);
 
 	        
 
@@ -104,6 +108,20 @@ public class MovieService {
 	  
 	  //business logic for pagination
 	  public Page<MovieEntity> getMoviesPage(Pageable pageable) {
-		    return tmDBRepository.findAll(pageable);
+		    return tmDBRepository.findAllSoftDeleted(pageable);
 		}
+
+	  public boolean deleteMovieThroughId(Long id) {
+		  int deletFlag;
+		  deletFlag = tmDBRepository.movieSoftDelete(id);
+		return deletFlag > 0;
+	  }
+	  
+	  // runs every 2 minutes
+	    @Scheduled(fixedRate = 120000) // 120000ms = 2 minutes
+	    @Transactional
+	    public void removeSoftDeletedMovies() {
+	    	tmDBRepository.deleteByIsDeleteTrue();
+	        System.out.println("Soft-deleted movies permanently removed at " + java.time.LocalDateTime.now());
+	    }
 }
