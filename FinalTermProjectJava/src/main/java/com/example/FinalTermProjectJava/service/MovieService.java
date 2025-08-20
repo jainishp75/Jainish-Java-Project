@@ -5,6 +5,8 @@ import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,11 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.FinalTermProjectJava.Entity.MovieEntity;
+import com.example.FinalTermProjectJava.cache.CacheInspector;
 import com.example.FinalTermProjectJava.repository.TmDbRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class MovieService {
 	
@@ -32,7 +37,12 @@ public class MovieService {
 	 @Autowired
 	 private TmDbRepository tmDBRepository;
 	 
+	 @Autowired
+	 private CacheInspector  cacheInspector;  
+	 
 	 ArrayList<MovieEntity> movieList = new ArrayList<>();
+	 
+	 
 	  
 	 
 	 public boolean checkValidationForExistingDbRecord() {
@@ -47,18 +57,11 @@ public class MovieService {
 	 //business logic for hitting 3rd party api and store it in db
 	  
 	public ArrayList<MovieEntity> getTrendingMovies() throws Exception {
-		  
-		 
-		  	
-		  
-		  	
-		  
+
 	        String url = "https://api.themoviedb.org/3/trending/movie/week?api_key=" + apiKey;
 	        String jsonResponse = restTemplate.getForObject(url, String.class);
 	        
 	        System.out.println(jsonResponse);
-
-	        
 
 	        JsonNode root = objectMapper.readTree(jsonResponse);
 	        JsonNode results = root.path("results");
@@ -107,21 +110,50 @@ public class MovieService {
 
 	  
 	  //business logic for pagination
+	 @Cacheable(value = "moviesPage", key = "#pageable.pageNumber + '-' + #pageable.pageSize")
 	  public Page<MovieEntity> getMoviesPage(Pageable pageable) {
+		  System.out.println(">>> Fetching from DB...");
+		       
 		    return tmDBRepository.findAllSoftDeleted(pageable);
 		}
 
+	 //business logic for soft delete
+	   @CacheEvict(value = "moviesPage", allEntries = true)
 	  public boolean deleteMovieThroughId(Long id) {
-		  int deletFlag;
-		  deletFlag = tmDBRepository.movieSoftDelete(id);
-		return deletFlag > 0;
+		  int numberOfSoftDeletedRecords;
+		  numberOfSoftDeletedRecords = tmDBRepository.movieSoftDelete(id);
+		return numberOfSoftDeletedRecords > 0;
 	  }
 	  
-	  // runs every 2 minutes
+	   //runs every 2 minutes
+	   @CacheEvict(value = "moviesPage", allEntries = true)
 	    @Scheduled(fixedRate = 120000) // 120000ms = 2 minutes
 	    @Transactional
 	    public void removeSoftDeletedMovies() {
 	    	tmDBRepository.deleteByIsDeleteTrue();
-	        System.out.println("Soft-deleted movies permanently removed at " + java.time.LocalDateTime.now());
+	        log.info("Soft-deleted movies permanently removed at " + java.time.LocalDateTime.now());
 	    }
+
+	   //business logic for set movie favourite
+	   @CacheEvict(value="moviesPage" , allEntries=true)
+	   public Boolean setFavouriteMovieThroughId(Long id) {
+		   int numberOfSetMovieFavourite = tmDBRepository.setMovieFavourite(id);
+		   return numberOfSetMovieFavourite > 0;
+		   
+		
+		   // TODO Auto-generated method stub
+		   
+	   }
+		public void debugCache(String string) {
+			// TODO Auto-generated method stub
+			cacheInspector.printCache(string);//printing existing cache data
+			
+		}
+		@CacheEvict(value="moviesPage" , allEntries=true)
+		public Boolean setUnFavouriteMovieThroughId(Long id) {
+			int numberOfSetMovieFavourite = tmDBRepository.setUnMovieFavourite(id);
+			   return numberOfSetMovieFavourite > 0;
+			
+		}
+
 }
