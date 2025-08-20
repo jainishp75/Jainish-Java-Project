@@ -28,6 +28,16 @@ public interface TmDbRepository extends JpaRepository<MovieEntity, Long> {
     @Modifying
     @Query("DELETE FROM MovieEntity m WHERE m.isDelete = true")
 	void deleteByIsDeleteTrue();
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE MovieEntity m SET m.isFavourite = true WHERE m.id = :id")
+	int setMovieFavourite(Long id);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE MovieEntity m SET m.isFavourite = false WHERE m.isFavourite = true AND  m.id = :id")
+	int setUnMovieFavourite(Long id);
     
     
 

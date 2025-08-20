@@ -26,6 +26,8 @@ public class MovieCntroller {
 	
 	ArrayList<MovieEntity> trendingMovies = new ArrayList<MovieEntity>();
 	
+	MovieEntity favouriteMovie ;
+	
 
 	//API for fetch data from 3rd party URL and stores in db
 	@ResponseBody
@@ -60,16 +62,41 @@ public class MovieCntroller {
 	    model.addAttribute("totalPages", moviePage.getTotalPages());
 	    model.addAttribute("size", size);
 	    
-	    System.out.println("Movies fetched: " + moviePage.getContent().size());
-
+	    movieService.debugCache("moviesPage");
+	    
 	    return "movies";
 	}
 	
 	@PutMapping("/deleteMovie/{id}")
 	public String deleteMovie(@PathVariable Long id) {
-	    movieService.deleteMovieThroughId(id); 
+		Boolean deleteFlag;
+		deleteFlag = movieService. deleteMovieThroughId(id);
+	   
 	    return "redirect:/fetchALL"; 
 	}
+	
+	@PutMapping("/favouriteMovie/{id}")
+	@ResponseBody
+	public Response favouriteMovie(@PathVariable Long id) {
+		boolean resultFlag;
+		resultFlag = movieService.setFavouriteMovieThroughId(id);  
+		if(resultFlag) {
+			return Response.getResponse(200, "Movie marked as favourite....", null);
+		}
+		return Response.getResponse(500, "Failed to update favourite status....", null);
+	}
+	
+	@PutMapping("/unFavouriteMovie/{id}")
+	@ResponseBody
+	public Response unFavouriteMovie(@PathVariable Long id) {
+		boolean resultFlag;
+		resultFlag = movieService.setUnFavouriteMovieThroughId(id);  
+		if(resultFlag) {
+			return Response.getResponse(200, "Movie unmarked as favourite....", null);
+		}
+		return Response.getResponse(500, "Failed to update favourite status....", null);
+	}
+
 
 
 }
