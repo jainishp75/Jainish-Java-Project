@@ -29,21 +29,6 @@ public class MovieCntroller {
 	MovieEntity favouriteMovie ;
 	
 
-	//API for fetch data from 3rd party URL and stores in db
-	@ResponseBody
-	  @GetMapping("/trending")
-	    public Response getTrendingMovies() throws Exception {
-		
-		boolean checkValidation = movieService.checkValidationForExistingDbRecord();
-		if(checkValidation) {
-			System.out.println(Response.getResponse(409, "Conflict Data is already exist in databse", trendingMovies));
-			return Response.getResponse(409, "Conflict Data is already exist in databse", trendingMovies);
-		}
-		
-		  trendingMovies = movieService.getTrendingMovies();
-		  
-		  return Response.getResponse(200, "Data inserted Succesfully..", trendingMovies);
-	    }
 	
 	
 	@GetMapping("/fetchALL")

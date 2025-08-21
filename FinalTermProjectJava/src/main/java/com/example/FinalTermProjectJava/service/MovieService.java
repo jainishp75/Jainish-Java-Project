@@ -2,6 +2,8 @@ package com.example.FinalTermProjectJava.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +43,7 @@ public class MovieService {
 	 private CacheInspector  cacheInspector;  
 	 
 	 ArrayList<MovieEntity> movieList = new ArrayList<>();
+	 ArrayList<MovieEntity> existingMovieList = new ArrayList<>();
 	 
 	 
 	  
@@ -55,7 +58,8 @@ public class MovieService {
 	 }
 	 
 	 //business logic for hitting 3rd party api and store it in db
-	  
+	 
+	 @Scheduled(fixedRate = 120000)
 	public ArrayList<MovieEntity> getTrendingMovies() throws Exception {
 
 	        String url = "https://api.themoviedb.org/3/trending/movie/week?api_key=" + apiKey;
@@ -101,8 +105,30 @@ public class MovieService {
 	                movieList.add(movie);
 	            }
 	        }
+	        
+	        
+	        //feching all existing movie
+	        existingMovieList = (ArrayList<MovieEntity>) tmDBRepository.findAll();
+	        
+	        //fetching existing of API TmDb Id of existing movie list
+	        Set<Long> existingIds = existingMovieList.stream()
+	                .map(MovieEntity::getTmdbId)  // or imdbId, or any unique identifier
+	                .collect(Collectors.toSet());
+	        
+	        
 
-	        movieList = (ArrayList<MovieEntity>) tmDBRepository.saveAll(movieList);
+	     // Keep only new movies from API
+	        ArrayList<MovieEntity> newMovies = movieList.stream()
+	        	    .filter(movie -> !existingIds.contains(movie.getTmdbId()))
+	        	    .collect(Collectors.toCollection(ArrayList::new));
+	        
+	        log.debug("found new movies =>"+newMovies.size());
+	     // Save new ones
+	        if (!newMovies.isEmpty()) {
+	            tmDBRepository.saveAll(newMovies);
+	            log.info("number of new record inserted : "+newMovies.size());
+	        }
+	        
 	        return movieList;
 	    }
 
