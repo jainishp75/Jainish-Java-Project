@@ -1,6 +1,7 @@
 package com.example.FinalTermProjectJava.controller;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -28,35 +30,37 @@ public class MovieCntroller {
 	
 	MovieEntity favouriteMovie ;
 	
+	 Optional<MovieEntity> movie ;
 
 	
 	
-	@GetMapping("/fetchALL")
-	public String fetchAllMoviesFromDb(
-	        Model model,
-	        @RequestParam(defaultValue = "0") int page,
-	        @RequestParam(required = false) Integer size) {
+	 @GetMapping("/fetchALL")
+	 public String fetchAllMoviesFromDb(
+	         Model model,
+	         @RequestParam(defaultValue = "0") int page,
+	         @RequestParam(required = false) Integer size) {
 
-	    if (size == null) size = 5;  // default value if null
+	     if (size == null) size = 5;  // default value
 
-	    Pageable pageable = PageRequest.of(page, size);
-	    Page<MovieEntity> moviePage = movieService.getMoviesPage(pageable);
+	     Pageable pageable = PageRequest.of(page, size);
+	     Page<MovieEntity> moviePage = movieService.getMoviesPage(pageable);
 
-	    model.addAttribute("movies", moviePage.getContent());
-	    model.addAttribute("currentPage", page);
-	    model.addAttribute("totalPages", moviePage.getTotalPages());
-	    model.addAttribute("size", size);
-	    
-	    movieService.debugCache("moviesPage");
-	    
-	    return "movies";
-	}
+	     model.addAttribute("movies", moviePage.getContent());
+	     model.addAttribute("pageNumber", page); // matches Thymeleaf Sr No
+	     model.addAttribute("pageSize", size);   // matches Thymeleaf Sr No
+	     model.addAttribute("currentPage", page); // for pagination controls
+	     model.addAttribute("totalPages", moviePage.getTotalPages());
+
+	     movieService.debugCache("moviesPage");
+
+	     return "movies";
+	 }
+
 	
-	@PutMapping("/deleteMovie/{id}")
+	@PostMapping("/deleteMovie/{id}")
 	public String deleteMovie(@PathVariable Long id) {
-		Boolean deleteFlag;
-		deleteFlag = movieService. deleteMovieThroughId(id);
-	   
+		
+		movie = movieService.deleteMovieThroughId(id);
 	    return "redirect:/fetchALL"; 
 	}
 	

@@ -84,13 +84,15 @@
 <body>
 
 <h1>All Movies</h1>
+
 <label for="pageSizeSelect">Movies per page:</label>
 <select id="pageSizeSelect">
-    <option th:selected="${size == 2}" value="2">2</option>
-    <option th:selected="${size == 5}" value="5">5</option>
-    <option th:selected="${size == 10}" value="10">10</option>
-    <option th:selected="${size == 20}" value="20">20</option>
+    <option th:selected="${pageSize == 2}" value="2">2</option>
+    <option th:selected="${pageSize == 5}" value="5">5</option>
+    <option th:selected="${pageSize == 10}" value="10">10</option>
+    <option th:selected="${pageSize == 20}" value="20">20</option>
 </select>
+
 <input type="text" id="searchInput" placeholder="Search movies by title..." />
 
 <table>
@@ -108,12 +110,14 @@
             <th>Popularity</th>
             <th>Vote Count</th>
             <th>Operations</th>
-			<th>Favourite Status</th>
+            <th>Favourite Status</th>
         </tr>
     </thead>
     <tbody id="moviesTbody">
         <tr th:each="movie, stat : ${movies}" class="movie-row">
-            <td th:text="${stat.index + 1}">1</td>
+            <!-- Sr No across pages -->
+            <td th:text="${pageNumber * pageSize + stat.index + 1}">1</td>
+
             <td>
                 <img class="poster-img" th:src="@{'https://image.tmdb.org/t/p/w200' + ${movie.posterPath}}" alt="Poster" />
             </td>
@@ -130,45 +134,40 @@
                 <!-- Delete Button -->
                 <form th:action="@{/deleteMovie/{id}(id=${movie.id})}" method="post" 
                       onsubmit="return confirm('Are you sure you want to delete this movie?');" style="display:inline;">
-                    <input type="hidden" name="_method" value="put"/>
+                    <input type="hidden" name="_method" value="post"/>
                     <button class="btn btn-danger" type="submit">Delete</button>
                 </form>
-
             </td>
-			
-			
-				<!-- Favourite / Unfavourite Buttons -->
-				<td>
-				    <button class="btn btn-warning" 
-				            th:id="'favBtn-' + ${movie.id}" 
-				            th:style="${movie.isFavourite} ? 'display:none' : 'inline-block'" 
-				            th:onclick="'toggleFavourite(' + ${movie.id} + ', true)'">
-				        Favourite
-				    </button>
+            <td>
+                <!-- Favourite / Unfavourite Buttons -->
+                <button class="btn btn-warning" 
+                        th:id="'favBtn-' + ${movie.id}" 
+                        th:style="${movie.isFavourite} ? 'display:none' : 'inline-block'" 
+                        th:onclick="'toggleFavourite(' + ${movie.id} + ', true)'">
+                    Favourite
+                </button>
 
-				    <button class="btn btn-success" 
-				            th:id="'unfavBtn-' + ${movie.id}" 
-				            th:style="${movie.isFavourite} ? 'inline-block' : 'display:none'" 
-				            th:onclick="'toggleFavourite(' + ${movie.id} + ', false)'">
-				        Unfavourite
-				    </button>
-				</td>
-
-			
+                <button class="btn btn-success" 
+                        th:id="'unfavBtn-' + ${movie.id}" 
+                        th:style="${movie.isFavourite} ? 'inline-block' : 'display:none'" 
+                        th:onclick="'toggleFavourite(' + ${movie.id} + ', false)'">
+                    Unfavourite
+                </button>
+            </td>
         </tr>
     </tbody>
 </table>
 
 <div class="pagination"> 
-    <button th:if="${currentPage > 0}"
-            th:onclick="'window.location=\'/fetchALL?page=' + (${currentPage} - 1) + '&size=' + ${size} + '\''">
+    <button th:if="${pageNumber > 0}"
+            th:onclick="'window.location=\'/fetchALL?page=' + (${pageNumber} - 1) + '&size=' + ${pageSize} + '\''">
         Previous
     </button>
 
-    <span>Page <b th:text="${currentPage + 1}">1</b> of <b th:text="${totalPages}">1</b></span>
+    <span>Page <b th:text="${pageNumber + 1}">1</b> of <b th:text="${totalPages}">1</b></span>
 
-    <button th:if="${currentPage + 1 < totalPages}"
-            th:onclick="'window.location=\'/fetchALL?page=' + (${currentPage} + 1) + '&size=' + ${size} + '\''">
+    <button th:if="${pageNumber + 1 < totalPages}"
+            th:onclick="'window.location=\'/fetchALL?page=' + (${pageNumber} + 1) + '&size=' + ${pageSize} + '\''">
         Next
     </button>
 </div>
@@ -201,7 +200,7 @@
         if (visibleCount === 0) {
             const noRow = document.createElement('tr');
             noRow.classList.add('no-movies-row');
-            noRow.innerHTML = `<td colspan="12">Movies not found</td>`;
+            noRow.innerHTML = `<td colspan="13">Movies not found</td>`;
             tbody.appendChild(noRow);
         }
     });
@@ -209,48 +208,41 @@
     // Page size change
     const pageSizeSelect = document.getElementById('pageSizeSelect');
     pageSizeSelect.addEventListener('change', () => {
-        const selectedSize = pageSizeSelect.value;
+        const selectedSize = parseInt(pageSizeSelect.value) || 5;
         window.location = `/fetchALL?page=0&size=${selectedSize}`;
     });
 
     // Favourite / Unfavourite API call
-	function toggleFavourite(movieId, makeFavourite) {
-	    const url = makeFavourite 
-	        ? `/favouriteMovie/${movieId}` 
-	        : `/unFavouriteMovie/${movieId}`;
+    function toggleFavourite(movieId, makeFavourite) {
+        const url = makeFavourite 
+            ? `/favouriteMovie/${movieId}` 
+            : `/unFavouriteMovie/${movieId}`;
 
-	    fetch(url, { method: 'PUT' })
-	        .then(res => {
-	            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-	            return res.json();  // parse JSON
-	        })
-	        .then(data => {
-	            console.log(data); // {statusCode: 200, message: "...", movieEntity: null}
-
-	            if (data.statusCode === 200) {  // <-- use statusCode, not status
-	                const favBtn = document.getElementById(`favBtn-${movieId}`);
-	                const unfavBtn = document.getElementById(`unfavBtn-${movieId}`);
-	                if (makeFavourite) {
-	                    favBtn.style.display = 'none';
-	                    unfavBtn.style.display = 'inline-block';
-	                } else {
-	                    unfavBtn.style.display = 'none';
-	                    favBtn.style.display = 'inline-block';
-	                }
-	            } else {
-	                alert(`Error: ${data.message}`);
-	            }
-	        })
-	        .catch(err => {
-	            console.error('Error:', err);
-	            alert('Error updating favourite status: ' + err.message);
-	        });
-	}
-
-
-
-
-
+        fetch(url, { method: 'PUT' })
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                return res.json();  // parse JSON
+            })
+            .then(data => {
+                if (data.statusCode === 200) {
+                    const favBtn = document.getElementById(`favBtn-${movieId}`);
+                    const unfavBtn = document.getElementById(`unfavBtn-${movieId}`);
+                    if (makeFavourite) {
+                        favBtn.style.display = 'none';
+                        unfavBtn.style.display = 'inline-block';
+                    } else {
+                        unfavBtn.style.display = 'none';
+                        favBtn.style.display = 'inline-block';
+                    }
+                } else {
+                    alert(`Error: ${data.message}`);
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('Error updating favourite status: ' + err.message);
+            });
+    }
 </script>
 
 </body>
