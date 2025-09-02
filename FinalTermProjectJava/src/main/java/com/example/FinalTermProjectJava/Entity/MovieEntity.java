@@ -60,10 +60,11 @@ public class MovieEntity {
     private Integer voteCount;
     
     @Column(nullable = false)
-    private Boolean isDelete = false ;
-    
-    @Column(nullable = false)
     private Boolean isFavourite = false ;
+    
+    
+    
+
 
     @ElementCollection
     @CollectionTable(name = "movie_genres", joinColumns = @JoinColumn(name = "movie_id"))
