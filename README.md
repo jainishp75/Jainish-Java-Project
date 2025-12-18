@@ -53,5 +53,6 @@ Ensure you have installed:
 
 ### 2️⃣ Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/FinalTermProjectJava.git
+git clone https://github.com/jainishp75/FinalTermProjectJava.git
 cd FinalTermProjectJava
+
